@@ -27,6 +27,7 @@ const state = {
   displaySizes: false,
   continuousInput: false,
   ignoreMod: false,
+  layerIds: [],
   templates: {
     keymap: {
       version: 1,
@@ -221,6 +222,9 @@ const actions = {
   }
 };
 const mutations = {
+  setLayerIds(state, value) {
+    Vue.set(state, 'layerIds', value);
+  },
   setKeymapTemplate(state, template) {
     Vue.set(state.templates, 'keymap', template);
   },

@@ -35,6 +35,17 @@
       >
         <font-awesome-icon icon="upload" size="lg" fixed-width />
       </button>
+      <span
+        class="label-button"
+        style="
+          margin-left: 10px;
+          margin-right: 10px;
+          border-radius: 4px;
+          cursor: pointer;
+        "
+        @click="exportZMK"
+        >EXPORT TO ZMK</span
+      >
       <button
         id="import-url"
         v-tooltip.bottom="$t('importUrlJSON.title')"
@@ -135,8 +146,107 @@ import { getPreferredLayout, checkInvalidKeymap } from '@/util';
 import ElectronBottomControls from './ElectronBottomControls';
 
 import remap from '@/remap';
+import ansiMapping from '../store/modules/keycodes/ansi-mapping';
+import ansi from '../store/modules/keycodes/ansi';
+
+const keyCodesMap = ansi.reduce((acc, item, index) => {
+  acc[item.code] = ansiMapping[index].code;
+  return acc;
+}, {});
 
 const encoding = 'data:application/json;charset=utf-8,';
+
+const getZMKLayerInfo = (layerItems) => {
+  let info = '//\t';
+
+  layerItems.forEach((item) => {
+    info += item.name + '\t';
+  });
+
+  info += '\n';
+
+  return info;
+};
+
+const getZMKLayerBindings = (layerIds, layerItems) => {
+  let result = '\t';
+
+  layerItems.forEach((item) => {
+    let value = '&kp ' + keyCodesMap[item.code];
+
+    if (item.code === 'KC_TRNS') {
+      value = '&trans';
+    }
+
+    if (item.code === 'KC_NO') {
+      value = '&none';
+    }
+
+    if (item.type === 'layer') {
+      if (item.code === 'MO(layer)') {
+        const layerId = layerIds[Number(item.layer)];
+        if (!layerId) {
+          console.error('NO layer id', item.layer);
+        }
+        value = `&mo ${layerId}`;
+      }
+    }
+
+    if (item.name === 'Any' && item.text.startsWith('&')) {
+      debugger;
+      value = item.text;
+    }
+
+    result += value + '\t';
+  });
+
+  result += '\n';
+
+  return result;
+};
+
+const getZMKData = (layerIds, layers) => {
+  let layersText = '';
+  console.log('LAYERS', JSON.stringify(layers));
+
+  layers.forEach((layerItems, layerIndex) => {
+    // let info = getZMKLayerInfo(layerItems);
+    const info = '';
+    let layerId = layerIds[`${layerIndex}`] ?? '';
+    let bindings = getZMKLayerBindings(layerIds, layerItems);
+
+    layersText += `
+      ${layerId.toLowerCase()} {
+${info}
+        bindings = <
+${bindings}
+        >;
+        sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp PG_UP PG_DN>;
+      };
+    `;
+  });
+
+  return `
+/*
+ * Copyright (c) 2020 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+
+${layerIds.map((item, index) => `#define ${item} ${index}`).join('\n')}
+
+/ {
+	keymap {
+		compatible = "zmk,keymap";
+
+${layersText}
+  };
+};
+  `;
+};
 
 export default {
   name: 'bottom-controller',
@@ -155,6 +265,7 @@ export default {
       'notes',
       'electron'
     ]),
+    ...mapState('keymap', ['layerIds', 'keymap']),
     ...mapGetters('app', ['exportKeymapName', 'firmwareFile']),
     ...mapGetters('keymap', ['isDirty', 'exportLayers']),
     disableDownloadKeymap() {
@@ -209,6 +320,12 @@ export default {
       'loadKeymapFromUrl',
       'loadLayouts'
     ]),
+    ...mapMutations('keymap', [
+      'setLoadingKeymapPromise',
+      'setDirty',
+      'clear',
+      'setLayerIds'
+    ]),
     ...mapActions('status', ['viewReadme']),
     ...mapActions('keymap', ['load_converted_keymap']),
     async importUrlkeymap() {
@@ -246,12 +363,39 @@ export default {
         layout: this.layout,
         layers: layers,
         author: this.author,
-        notes: this.notes
+        notes: this.notes,
+        layerIds: this.layerIds
       });
 
       this.download(
         `${this.exportKeymapName}.json`,
         JSON.stringify(data, null, 2)
+      );
+    },
+    exportZMK() {
+      //Squashes the keymaps to the api payload format, might look into making this a function
+      // let rawLayers = this.$store.getters['keymap/exportRawLayers']({
+      //   compiler: false
+      // });
+
+      // let layerIds = this.$store.getters['keymap/exportLayerIds']({
+      //   compiler: false
+      // });
+
+      // //API payload format
+      // let data = {
+      //   keyboard: this.keyboard,
+      //   keymap: this.exportKeymapName,
+      //   layout: this.layout,
+      //   layers: layers,
+      //   author: this.author,
+      //   notes: this.notes
+      // };
+
+      console.log('ZMK DATAT', getZMKData(this.layerIds, this.keymap));
+      this.download(
+        `zmk_${Date.now()}.keymap`,
+        getZMKData(this.layerIds, this.keymap)
       );
     },
     download(filename, data) {
@@ -377,6 +521,7 @@ export default {
         let promise = await new Promise((resolve) =>
           this.setLoadingKeymapPromise(resolve)
         );
+
         const stats = await this.load_converted_keymap(data.layers);
         let msg = this.$t('statsTemplate', stats);
         if (stats.warnings.length > 0 || stats.errors.length > 0) {
@@ -392,6 +537,9 @@ export default {
           this.setKeymapName(keymapName);
           this.setDirty();
         });
+
+        debugger;
+        this.setLayerIds(data.layerIds);
         disableOtherButtons();
       } catch (err) {
         console.log('Unexpected error', err);

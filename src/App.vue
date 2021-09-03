@@ -1,5 +1,5 @@
 <template>
-  <div id="app" @click="dismiss">
+  <div id="app">
     <span style="display: none">{{ revision }}</span>
     <div>
       <header>

@@ -53,6 +53,10 @@ export function generateKeypressCombos(store, _keycodes) {
 // Share the code between keydown handlers
 // Use currying to bind the meta parameter at runtime.
 export function keydownHandler(store, meta, ev) {
+  if (ev.target.id === 'layerId') {
+    return true;
+  }
+
   let _meta = meta;
 
   // detect numpad
@@ -87,6 +91,10 @@ export function keydownHandler(store, meta, ev) {
 
 // Used exclusively to detect mods on so we can support modded input
 export function modHandler(store, meta, ev) {
+  if (ev.target.id === 'layerId') {
+    return true;
+  }
+
   let _meta = meta;
 
   if (store.state.keymap.ignoreMod) {
@@ -117,19 +125,19 @@ export function generateKeypressHandler(store, keycode) {
       return {
         keys: keycode.keys,
         on_keydown: partial(modHandler, store, meta),
-        prevent_default: true
+        prevent_default: false
       };
     case 'KC_LSFT':
       return {
         keys: keycode.keys,
         on_keyup: partial(modHandler, store, meta),
-        prevent_default: true
+        prevent_default: false
       };
     default:
       return {
         keys: keycode.keys,
         on_keydown: partial(keydownHandler, store, meta),
-        prevent_default: true
+        prevent_default: false
       };
   }
 }

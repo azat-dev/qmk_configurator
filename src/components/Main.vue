@@ -54,6 +54,13 @@
           >
             <font-awesome-icon icon="star" size="lg" fixed-width />
           </a>
+
+          <input
+            type="text"
+            v-model="_layerId"
+            id="layerId"
+            placeholder="LayerID"
+          />
         </div>
         <visualKeymap :profile="false" />
         <span class="keymap--count"
@@ -87,7 +94,12 @@ export default {
   computed: {
     ...mapState('app', ['appInitialized', 'configuratorSettings']),
     ...mapGetters('app', ['keyCount']),
-    ...mapState('keymap', ['continuousInput']),
+    ...mapState('keymap', {
+      continuousInput: 'continuousInput',
+      layerIds: 'layerIds',
+      currentLayer: 'layer',
+      layers: 'keymap'
+    }),
     ...mapGetters('keymap', ['colorwayIndex', 'colorways', 'size']),
     curIndex: {
       get() {
@@ -95,6 +107,18 @@ export default {
       },
       set(value) {
         this.nextColorway(value);
+      }
+    },
+    _layerId: {
+      get() {
+        return this.layerIds[this.currentLayer];
+      },
+      set(value) {
+        // debugger;
+        const newValues = this.layerIds.slice();
+        newValues[this.currentLayer] = value;
+        this.time = Date.now();
+        this.setLayerIds(newValues);
       }
     },
     displayColorways() {
@@ -128,8 +152,15 @@ export default {
   },
   methods: {
     ...mapActions('app', ['setFavoriteColor', 'initKeypressListener']),
-    ...mapMutations('keymap', ['nextColorway']),
+    ...mapMutations('keymap', ['nextColorway', 'setLayerIds']),
     ...mapMutations('app', ['resetListener']),
+    _onLayerIdChange(value) {
+      // debugger;
+      const newValues = (this.layerIds ?? []).slice();
+      newValues[this.currentLayer] = value;
+      debugger;
+      this.setLayerIds(newValues);
+    },
     favColor() {
       if (this.isFavoriteColor) {
         this.setFavoriteColor('');
