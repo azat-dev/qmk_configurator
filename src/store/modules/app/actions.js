@@ -16,7 +16,12 @@ const actions = {
    * fetchKeyboards - fetch keyboard list from API
    */
   async fetchKeyboards({ commit }) {
-    const r = await axios.get(backend_keyboard_list_url);
+    // let r = await axios.get(backend_keyboard_list_url);
+    let r;
+    if (r?.status !== 200) {
+      r = await axios.get('/offline_api/keyboard_list.json');
+    }
+
     if (r.status === 200) {
       const exclude = getExclusionList();
       const results = r.data.keyboards.filter((keeb) => {
@@ -24,6 +29,8 @@ const actions = {
       });
       commit('setKeyboards', results);
       return results;
+    } else {
+      const r = await axios.get(backend_keyboard_list_url);
     }
     return [];
   },

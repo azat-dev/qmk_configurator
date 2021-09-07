@@ -147,12 +147,19 @@ import ElectronBottomControls from './ElectronBottomControls';
 
 import remap from '@/remap';
 import ansiMapping from '../store/modules/keycodes/ansi-mapping';
+import appMapping from '../store/modules/keycodes/app-media-mouse-mapping';
 import ansi from '../store/modules/keycodes/ansi';
+import appCodes from '../store/modules/keycodes/app-media-mouse';
 
-const keyCodesMap = ansi.reduce((acc, item, index) => {
-  acc[item.code] = ansiMapping[index].code;
-  return acc;
-}, {});
+const keyCodesMap = {};
+
+ansi.forEach((item, index) => {
+  keyCodesMap[item.code] = ansiMapping[index].code;
+});
+
+appCodes.forEach((item, index) => {
+  keyCodesMap[item.code] = appMapping[index].code;
+});
 
 const encoding = 'data:application/json;charset=utf-8,';
 
@@ -172,29 +179,33 @@ const getZMKLayerBindings = (layerIds, layerItems) => {
   let result = '\t';
 
   layerItems.forEach((item) => {
-    let value = '&kp ' + keyCodesMap[item.code];
+    const mappedCode = keyCodesMap[item.code];
+    let value = '&kp ' + mappedCode;
 
-    if (item.code === 'KC_TRNS') {
-      value = '&trans';
-    }
-
-    if (item.code === 'KC_NO') {
-      value = '&none';
-    }
-
-    if (item.type === 'layer') {
-      if (item.code === 'MO(layer)') {
-        const layerId = layerIds[Number(item.layer)];
-        if (!layerId) {
-          console.error('NO layer id', item.layer);
-        }
-        value = `&mo ${layerId}`;
+    if (mappedCode?.startsWith('&')) {
+      value = mappedCode;
+    } else {
+      if (item.code === 'KC_TRNS') {
+        value = '&trans';
       }
-    }
 
-    if (item.name === 'Any' && item.text.startsWith('&')) {
-      debugger;
-      value = item.text;
+      if (item.code === 'KC_NO') {
+        value = '&none';
+      }
+
+      if (item.type === 'layer') {
+        if (item.code === 'MO(layer)') {
+          const layerId = layerIds[Number(item.layer)];
+          if (!layerId) {
+            console.error('NO layer id', item.layer);
+          }
+          value = `&mo ${layerId}`;
+        }
+      }
+
+      if (item.name === 'Any' && item.text.startsWith('&')) {
+        value = item.text;
+      }
     }
 
     result += value + '\t';
@@ -235,10 +246,34 @@ ${bindings}
 
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/mouse_wheel.h>
 
 ${layerIds.map((item, index) => `#define ${item} ${index}`).join('\n')}
 
 / {
+
+  behaviors {
+    hm: homerow_mods {
+      compatible = "zmk,behavior-hold-tap";
+      label = "HOMEROW_MODS";
+      #binding-cells = <2>;
+      tapping-term-ms = <150>;
+      quick_tap_ms = <0>;
+      flavor = "tap-preferred";
+      bindings = <&kp>, <&kp>;
+    };
+
+    hp: hold_preffered_keys {
+      compatible = "zmk,behavior-hold-tap";
+      label = "HOLD_PREFERRED";
+      #binding-cells = <2>;
+      tapping-term-ms = <150>;
+      quick_tap_ms = <0>;
+      flavor = "tap-preferred";
+      bindings = <&kp>, <&kp>;
+    };
+  };
+
 	keymap {
 		compatible = "zmk,keymap";
 
@@ -538,7 +573,6 @@ export default {
           this.setDirty();
         });
 
-        debugger;
         this.setLayerIds(data.layerIds);
         disableOtherButtons();
       } catch (err) {
