@@ -247,6 +247,7 @@ ${bindings}
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/mouse_wheel.h>
+#include <dt-bindings/zmk/half_layer.h>
 
 ${layerIds.map((item, index) => `#define ${item} ${index}`).join('\n')}
 
