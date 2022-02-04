@@ -175,6 +175,8 @@ const getZMKLayerInfo = (layerItems) => {
   return info;
 };
 
+// &hpm LAYER_FN TAB
+
 const getZMKLayerBindings = (layerIds, layerItems) => {
   let result = '\t';
 
@@ -248,22 +250,15 @@ ${bindings}
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/mouse_wheel.h>
 #include <dt-bindings/zmk/half_layer.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/outputs.h>
 
 ${layerIds.map((item, index) => `#define ${item} ${index}`).join('\n')}
 
 / {
 
   behaviors {
-    hm: homerow_mods {
-      compatible = "zmk,behavior-hold-tap";
-      label = "HOMEROW_MODS";
-      #binding-cells = <2>;
-      tapping-term-ms = <150>;
-      quick_tap_ms = <0>;
-      flavor = "tap-preferred";
-      bindings = <&kp>, <&kp>;
-    };
-
     hp: hold_preffered_keys {
       compatible = "zmk,behavior-hold-tap";
       label = "HOLD_PREFERRED";
@@ -273,6 +268,44 @@ ${layerIds.map((item, index) => `#define ${item} ${index}`).join('\n')}
       flavor = "tap-preferred";
       bindings = <&kp>, <&kp>;
     };
+  
+    hpm: hold_preffered_keys {
+      compatible = "zmk,behavior-hold-tap";
+      label = "HOLD_PREFERRED_MO_LAYER";
+      #binding-cells = <2>;
+      tapping-term-ms = <150>;
+      quick_tap_ms = <0>;
+      flavor = "tap-preferred";
+      bindings = <&mo>, <&kp>;
+    };
+  };
+
+  combos {
+      compatible = "zmk,combos";
+
+      combo_mouse {
+          timeout-ms = <50>;
+          key-positions = <11 39>;
+          bindings = <&tog LAYER_MOUSE>;
+      };
+
+      combo_bt_reset_right {
+          timeout-ms = <50>;
+          key-positions = <11 48>;
+          bindings = <&bt BT_FULL_RESET>;
+      };
+
+      combo_bt_reset_peripheral_right {
+          timeout-ms = <50>;
+          key-positions = <11 49>;
+          bindings = <&tog LAYER_DIGITS>;
+      };
+
+      // combo_bt_reset_left {
+      //     timeout-ms = <50>;
+      //     key-positions = <0 41>;
+      //     bindings = <&tog BT_FULL_RESET>;
+      // };
   };
 
 	keymap {
