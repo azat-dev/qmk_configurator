@@ -180,6 +180,7 @@ const getZMKLayerInfo = (layerItems) => {
 const getZMKLayerBindings = (layerIds, layerItems) => {
   let result = '\t';
 
+  console.log("layerItems", layerItems);
   layerItems.forEach((item) => {
     const mappedCode = keyCodesMap[item.code];
     let value = '&kp ' + mappedCode;
@@ -202,6 +203,32 @@ const getZMKLayerBindings = (layerIds, layerItems) => {
             console.error('NO layer id', item.layer);
           }
           value = `&mo ${layerId}`;
+        }
+      }
+
+      if (item.type === 'container') {
+        const modifierMap = {
+            "LGui": "LG",
+            "RGui": "RG",
+            "RAlt": "RA",
+            "LAlt": "LA",
+            "LCtl": "LC",
+            "RCtl": "RC"
+          };
+ 
+          const modifierKeys = Object.getOwnPropertyNames(modifierMap);
+        
+        if (modifierKeys.some(key => !!modifierMap[key])) {
+          const keyCode = item.contents?.code;
+          const mappedKeyCode = keyCodesMap[keyCode];
+          
+
+          debugger
+
+          const modifier = modifierMap[item.name];
+          if (modifier) {
+            value = `&kp ${modifier}(${mappedKeyCode})`;
+          }
         }
       }
 
